@@ -1,0 +1,266 @@
+from IPython.display import HTML, display
+
+html = """
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Générateur de Demande de Stage</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Lato:wght@400;700&family=Raleway:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    :root{
+      --bleu:#0B3D91;
+      --bleu-clair:#f0f5ff; --rouge:#c62828; --gris:#5f6b7a; --bord:#d8dee9;
+      --vert:#27ae60;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family: 'Segoe UI', Arial, sans-serif;
+    background:#f0f2f5; color:#1a1a1a; line-height:1.15}
+    
+    /* Barre d'outils flottante */
+    #floating-toolbar {
+        position: absolute;
+        display: none;
+        background: white;
+        border: 1px solid var(--bleu);
+        padding: 5px;
+        border-radius: 6px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        z-index: 1000;
+        gap: 5px;
+        align-items: center;
+    }
+    #floating-toolbar select { padding: 3px; border: 1px solid #ddd; font-size: 11px; border-radius: 4px; }
+
+    .btn-container { 
+        max-width: 210mm; margin: 10px auto; display: flex; justify-content: flex-end; gap: 15px; 
+        background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .btn { border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+    .btn-clear { background: #fee2e2; color: var(--rouge); border: 1px solid var(--rouge); }
+    .btn-download { background: var(--vert); color: white; }
+
+    #cv-page { 
+        width: 210mm; height: 296mm; margin: 0 auto; position: relative;
+        background: white; display: flex; flex-direction: column; 
+        overflow: hidden; box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    header { 
+        background: var(--bleu); padding: 10px 30px; 
+        display: flex; align-items: center; justify-content: space-between; 
+        border-bottom: 5px solid #082d6b; height: 85px;
+    }
+    
+    .title-header-group { flex: 1; text-align: center; color: white; }
+    .title-header-group h1 { margin: 0; font-size: 22px; color: white; text-transform: uppercase; }
+    .sub-title-white {
+        font-size: 16px; color: rgba(255,255,255,0.9); font-weight: bold; 
+        border-bottom: 1px solid rgba(255,255,255,0.4); 
+        display: inline-block; min-width: 280px; outline: none; margin-top: 3px;
+    }
+
+    .upload-zone {
+      background: white; border: 1px dashed var(--gris); display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border-radius: 4px; overflow: hidden; position: relative; flex-shrink: 0;
+    }
+    .upload-zone img { max-width: 100%; max-height: 100%; object-fit: contain; z-index: 1; display:none; }
+    .upload-zone span { font-size: 8px; color: var(--bleu); font-weight: bold; position: absolute; z-index: 0; text-align: center; }
+
+    .logo-ent, .logo-lyc { width: 130px; height: 50px; }
+
+    main { padding: 15px 35px; flex: 1; display: flex; flex-direction: column; gap: 8px; }
+
+    .identity-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; flex-shrink: 0; }
+    .info-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+    .editable-line { border-bottom: 1px dotted var(--gris); flex: 1; height: 18px; outline: none; padding: 0 5px; }
+    
+    .permis-zone { display: flex; gap: 8px; align-items: center; font-size: 12px; }
+
+    .section { display: flex; flex-direction: column; flex: 1; min-height: 35px; }
+    .section-label { color: var(--bleu); font-weight: bold; font-size: 10px; text-transform: uppercase; border-left: 3px solid var(--bleu); padding-left: 8px; margin-bottom: 3px; }
+
+    .content-box {
+      border: 1px solid var(--bord); border-radius: 6px; background: #fdfdfd;
+      padding: 6px 10px; outline: none; font-size: 12px; white-space: pre-wrap; flex: 1;
+    }
+
+    .dual-layout { display: flex; gap: 15px; flex: 2; }
+    .col-left, .col-right { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+    
+    .skills-area { background: var(--bleu-clair); border: 1px solid var(--bord); border-radius: 6px; padding: 10px; flex: 1; outline: none; }
+    .skill-list { list-style: none; padding: 0; margin: 0; font-size: 11.5px; }
+    .skill-list li { margin-bottom: 3px; padding-left: 12px; position: relative; }
+    .skill-list li::before { content: "•"; color: var(--rouge); position: absolute; left: 0; font-weight: bold; }
+
+    .footer-grid { display: flex; gap: 15px; flex: 0.6; }
+    .contact-box { background: #f8fafc; border: 1px solid var(--bleu); }
+
+    @media print {
+      .btn-container, #floating-toolbar { display: none !important; }
+      #cv-page { margin: 0; border: none; width: 210mm; height: 297mm; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="floating-toolbar">
+    <select id="fFont" onchange="applyLocalStyle('fontFamily', this.value)">
+        <option value="">Police</option>
+        <option value="'Helvetica Neue', sans-serif">Helvetica</option>
+        <option value="'Montserrat', sans-serif">Montserrat</option>
+        <option value="'Lato', sans-serif">Lato</option>
+        <option value="'Garamond', serif">Garamond</option>
+        <option value="'Georgia', serif">Georgia</option>
+        <option value="'Arial', sans-serif">Arial</option>
+        <option value="'Verdana', sans-serif">Verdana</option>
+        <option value="'Raleway', sans-serif">Raleway</option>
+        <option value="'Century Gothic', sans-serif">Century Gothic</option>
+    </select>
+    <select id="fSize" onchange="applyLocalStyle('fontSize', this.value)">
+        <option value="">Taille</option>
+        <option value="8pt">8</option><option value="10pt">10</option><option value="12pt">12</option>
+        <option value="14pt">14</option><option value="16pt">16</option><option value="18pt">18</option>
+    </select>
+    <select id="fColor" onchange="applyLocalStyle('color', this.value)">
+        <option value="">Bleu</option>
+        <option value="#0B3D91">Nuit</option>
+        <option value="#1565C0">Royal</option>
+        <option value="#0277BD">Océan</option>
+    </select>
+  </div>
+
+  <div class="btn-container">
+    <button class="btn btn-clear" onclick="clearAll()">🗑️ Tout effacer</button>
+    <button class="btn btn-download" onclick="exportPDF()">📥 Télécharger PDF</button>
+  </div>
+
+  <div id="cv-page">
+    <header>
+      <div class="upload-zone logo-ent" onclick="document.getElementById('inEnt').click()">
+        <span id="tEnt">LOGO ENTREPRISE</span>
+        <img id="pEnt"><input type="file" id="inEnt" hidden accept="image/*" onchange="preview(this,'pEnt','tEnt')">
+      </div>
+      <div class="title-header-group">
+         <h1>Demande de stage</h1>
+         <div class="sub-title-white target-zone" contenteditable="true">Cliquez ici pour le titre</div>
+      </div>
+      <div class="upload-zone logo-lyc" onclick="document.getElementById('inLyc').click()">
+          <span id="tLyc">LOGO LYCÉE</span>
+          <img id="pLyc" src="Logo-GRETA-Lille-Metropole-500.png" style="display:block;">
+          <input type="file" id="inLyc" hidden accept="image/*" onchange="preview(this,'pLyc','tLyc')">
+      </div>
+    </header>
+
+    <main>
+      <div class="identity-grid">
+        <div class="info-item"><b>Nom :</b> <div class="editable-line target-zone" contenteditable="true"></div></div>
+        <div class="info-item"><b>Ville :</b> <div class="editable-line target-zone" contenteditable="true"></div></div>
+        <div class="info-item"><b>Tél :</b> <div class="editable-line target-zone" contenteditable="true"></div></div>
+        <div class="info-item"><b>Email :</b> <div class="editable-line target-zone" contenteditable="true"></div></div>
+        <div class="info-item"><b>Permis :</b> <div class="permis-zone"><input type="radio" name="p"> Oui <input type="radio" name="p"> Non</div></div>
+      </div>
+
+      <div class="section" style="flex: 0.6;">
+        <div class="section-label">Projet professionnel</div>
+        <div class="content-box target-zone" contenteditable="true">Motivation...</div>
+      </div>
+
+      <div class="dual-layout">
+        <div class="col-left">
+           <div class="section-label">Compétences formation</div>
+           <div class="skills-area target-zone" contenteditable="true">
+              <ul class="skill-list"><li>Analyser la demande...</li><li>Traduire un besoin...</li></ul>
+          </div>
+        </div>
+        <div class="col-right">
+          <div class="section"><div class="section-label">Savoir-être</div><div class="content-box target-zone" contenteditable="true">Rigueur...</div></div>
+          <div class="section"><div class="section-label">Transversales</div><div class="content-box target-zone" contenteditable="true">Langues...</div></div>
+        </div>
+      </div>
+
+      <div class="section" style="flex: 1.2;">
+        <div class="section-label">Expériences</div>
+        <div class="content-box target-zone" contenteditable="true">Stages...</div>
+      </div>
+
+      <div class="section" style="flex: 0.7;">
+        <div class="section-label">Formation</div>
+        <div class="content-box target-zone" contenteditable="true">Diplôme...</div>
+      </div>
+
+      <div class="footer-grid">
+        <div class="section" style="flex: 1.2;"><div class="section-label">Loisirs</div><div class="content-box target-zone" contenteditable="true">Passions...</div></div>
+        <div class="section" style="flex: 0.8;"><div class="section-label">Contact</div><div class="content-box contact-box target-zone" contenteditable="true">GRETA Lille</div></div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    let currentElement = null;
+    const toolbar = document.getElementById('floating-toolbar');
+
+    // Détecte le clic sur n'importe quelle zone d'écriture
+    document.addEventListener('focusin', (e) => {
+        if (e.target.classList.contains('target-zone')) {
+            currentElement = e.target;
+            const rect = currentElement.getBoundingClientRect();
+            toolbar.style.display = 'flex';
+            toolbar.style.top = (window.scrollY + rect.top - 40) + 'px';
+            toolbar.style.left = rect.left + 'px';
+            
+            // Réinitialise les sélecteurs sur les valeurs de l'élément
+            document.getElementById('fFont').value = "";
+            document.getElementById('fSize').value = "";
+            document.getElementById('fColor').value = "";
+        }
+    });
+
+    // Cache la barre si on clique ailleurs
+    document.addEventListener('mousedown', (e) => {
+        if (!toolbar.contains(e.target) && !e.target.classList.contains('target-zone')) {
+            toolbar.style.display = 'none';
+        }
+    });
+
+    function applyLocalStyle(property, value) {
+        if (currentElement && value !== "") {
+            currentElement.style[property] = value;
+            // Pour les listes de compétences, on applique aussi aux enfants
+            if(currentElement.classList.contains('skills-area')) {
+                currentElement.querySelectorAll('li').forEach(li => li.style[property] = value);
+            }
+        }
+    }
+
+    function preview(input, imgId, txtId) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = document.getElementById(imgId);
+          img.src = e.target.result; img.style.display = 'block';
+          if(document.getElementById(txtId)) document.getElementById(txtId).style.display = 'none';
+        }
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function clearAll() {
+      if(confirm("Réinitialiser ?")) {
+        document.querySelectorAll('.target-zone').forEach(el => el.innerText = "");
+      }
+    }
+
+    function exportPDF() {
+      toolbar.style.display = 'none';
+      const element = document.getElementById('cv-page');
+      html2pdf().set({ margin:0, filename:'Stage.pdf', image:{type:'jpeg', quality:1}, html2canvas:{scale:2}, jsPDF:{unit:'mm', format:'a4'} }).from(element).save();
+    }
+  </script>
+</body>
+</html>
+"""
+
+display(HTML(html))
